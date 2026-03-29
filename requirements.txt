@@ -4,5 +4,5 @@ pandas
 matplotlib
 scikit-learn
 yfinance
-tensorflow-cpu
+tensorflow==2.17.1
 h5py
