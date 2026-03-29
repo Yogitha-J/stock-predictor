@@ -76,7 +76,7 @@ Output     → 1 (next day's predicted price)
 - Target: Expert Systems with Applications (Elsevier Q1)
 
 ## 👥 Team
-- [Your Name]
-- [Teammate Name]
+- PAWAR AKSHATA MOHAN
+- YOGITHA J
 
-*Mini-Project Submission — [Your College Name] — [Year]*
+*Mini-Project Submission — ST. JOSEPH'S COLLLEGE OF ENGINEERING — [2026]*
