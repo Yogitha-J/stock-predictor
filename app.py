@@ -137,7 +137,41 @@ with tab1:
             st.pyplot(fig)
 
 with tab2:
-    st.info("Model performance metrics are calculated using an 80/20 train-test split on historical data[cite: 81, 82].")
+    st.markdown("### Model Evaluation")
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("""
+**RMSE** — average prediction error in ₹. Lower is better.\n
+**MAE** — mean absolute error. On average, off by ₹X.\n
+**80/20 split** — model never sees test data during training. Prevents overfitting.\n
+**60-day sequences** — 3 months of price history as model input.
+        """)
+    with c2:
+        import pandas as pd
+        st.dataframe(pd.DataFrame({
+            "Model":            ["Linear Regression","ARIMA","Simple RNN","Our Model (SVR)"],
+            "Non-linear":       ["❌","❌","✅","✅"],
+            "Long memory":      ["❌","⚠️","❌","✅"],
+            "Volatile stocks":  ["❌","❌","⚠️","✅"],
+        }), hide_index=True, use_container_width=True)
 
 with tab3:
-    st.write("This model utilizes a Support Vector Regressor (SVR) which is effective for non-linear time series data like stock prices[cite: 87].")
+    st.markdown("### 🧠 How the Model Works")
+    st.markdown('<div class="explainer-box"><b>Core idea:</b> Instead of predicting from 1 day, we feed 60 days of prices together — so the model sees trends, not just yesterday\'s number.</div>', unsafe_allow_html=True)
+    g1, g2, g3 = st.columns(3)
+    with g1:
+        st.markdown('<div class="explainer-box"><b>📅 60-Day Window</b><br>3 months of price history as input. Captures trends and cycles that single-day models miss.</div>', unsafe_allow_html=True)
+    with g2:
+        st.markdown('<div class="explainer-box"><b>📐 Normalisation</b><br>Prices scaled to 0–1 range. Model learns patterns, not just big vs small numbers.</div>', unsafe_allow_html=True)
+    with g3:
+        st.markdown('<div class="explainer-box"><b>🎯 RBF Kernel (SVR)</b><br>Maps data to higher dimensions. Finds non-linear price patterns that straight lines cannot.</div>', unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("#### Jury Q&A — Ready answers")
+    q1, q2 = st.columns(2)
+    with q1:
+        st.markdown('<div class="explainer-box"><b>Q: Why not linear regression?</b><br>Stock prices are non-linear. A straight line misses patterns like recovery after a 5-day dip.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="explainer-box"><b>Q: How do you prevent overfitting?</b><br>80/20 split — model never sees test data. RMSE is reported only on unseen data.</div>', unsafe_allow_html=True)
+    with q2:
+        st.markdown('<div class="explainer-box"><b>Q: Why NSE stocks?</b><br>Most research uses US markets. Indian markets have different volatility — RBI decisions, budget cycles. Underexplored area.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="explainer-box"><b>Q: Future scope?</b><br>Upgrade to Attention-LSTM + sentiment analysis from NSE news. Targeting Elsevier Q1 journal.</div>', unsafe_allow_html=True)
+    st.caption("Mini-Project Submission  •  Future: Attention-LSTM Research Paper")
