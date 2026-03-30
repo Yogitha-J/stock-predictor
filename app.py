@@ -174,4 +174,4 @@ with tab3:
     with q2:
         st.markdown('<div class="explainer-box"><b>Q: Why NSE stocks?</b><br>Most research uses US markets. Indian markets have different volatility — RBI decisions, budget cycles. Underexplored area.</div>', unsafe_allow_html=True)
         st.markdown('<div class="explainer-box"><b>Q: Future scope?</b><br>Upgrade to Attention-LSTM + sentiment analysis from NSE news. Targeting Elsevier Q1 journal.</div>', unsafe_allow_html=True)
-    st.caption("Mini-Project Submission  •  Future: Attention-LSTM Research Paper")
+    st.caption("Mini-Project Submission  •  PAWAR AKSHATA MOHAN - YOGITHA J")
