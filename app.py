@@ -1,7 +1,5 @@
 import streamlit as st
 import numpy as np
-from auth import login
-from ui_login import show_login_ui
 from streamlit_oauth import OAuth2Component
 import requests
 import plotly.graph_objects as go
