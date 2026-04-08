@@ -502,7 +502,7 @@ to [0,1] before training and inverse-transformed for output.
 
         # ── Chart ──
 
-        st.markdown('<div class="sec-header">📈 Interactive Prediction Chart</div>', unsafe_allow_html=True)
+st.markdown('<div class="sec-header">📈 Interactive Prediction Chart</div>', unsafe_allow_html=True)
 
 n = min(120, len(r['actual']))
 xs = list(range(n))
@@ -539,7 +539,7 @@ fig.update_layout(
 
 st.plotly_chart(fig, use_container_width=True)
 
-        st.caption("⚠ This is a machine learning model prediction, not financial advice. Past performance does not guarantee future results.")
+st.caption("⚠ This is a machine learning model prediction, not financial advice. Past performance does not guarantee future results.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 2 — Model Performance
