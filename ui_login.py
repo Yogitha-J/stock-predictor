@@ -1,6 +1,8 @@
 import streamlit as st
 
 def show_login_ui():
+    import streamlit as st
+
     st.markdown("""
     <style>
     .main {
@@ -23,5 +25,6 @@ def show_login_ui():
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="login-container"><div class="login-box">', unsafe_allow_html=True)
+
     st.markdown("## ⚡ QuantVision")
     st.markdown("AI-powered stock prediction platform")
