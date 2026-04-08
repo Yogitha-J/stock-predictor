@@ -735,6 +735,73 @@ with tab2:
         )
 
         st.plotly_chart(fig5, use_container_width=True)
+
+st.markdown('<div class="sec-header">📈 Interactive Prediction Chart</div>', unsafe_allow_html=True)
+
+# Data Preparation
+n = min(120, len(r['actual']))
+xs = list(range(n))
+actual_vals = r['actual'][-n:].flatten()
+pred_vals = r['predictions'][-n:].flatten()
+
+fig = go.Figure()
+
+# Actual Price (Solid line with area fill)
+fig.add_trace(go.Scatter(
+    x=xs,
+    y=actual_vals,
+    mode='lines',
+    name='Actual Price',
+    line=dict(color='#00d1ff', width=2.5),
+    fill='tozeroy',
+    fillcolor='rgba(0, 209, 255, 0.05)', # Subtle glow effect
+    hovertemplate='Actual: ₹%{y:.2f}<extra></extra>'
+))
+
+# Predicted Price (Clean dashed line)
+fig.add_trace(go.Scatter(
+    x=xs,
+    y=pred_vals,
+    mode='lines',
+    name='Model Prediction',
+    line=dict(color='#00ffa3', width=2, dash='dot'),
+    hovertemplate='Predicted: ₹%{y:.2f}<extra></extra>'
+))
+
+# Layout Enhancements
+fig.update_layout(
+    template="plotly_dark",
+    height=450,
+    paper_bgcolor='rgba(0,0,0,0)', # Transparent background
+    plot_bgcolor='rgba(0,0,0,0)',
+    margin=dict(l=0, r=0, t=30, b=0),
+    hovermode="x unified",
+    hoverlabel=dict(bgcolor="#1f2937", font_size=13, font_family="Inter"),
+    legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=1.02,
+        xanchor="right",
+        x=1
+    ),
+    xaxis=dict(
+        showgrid=False,
+        title="Recent Trading Days",
+        color="#94a3b8"
+    ),
+    yaxis=dict(
+        showgrid=True,
+        gridcolor="#2d323e",
+        title="Price (₹)",
+        color="#94a3b8",
+        side="right" # Professional financial charts often put Y-axis on the right
+    )
+)
+
+# Render inside a styled container
+with st.container():
+    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 3 — How It Works
 # ══════════════════════════════════════════════════════════════════════════════
