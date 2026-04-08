@@ -13,9 +13,4 @@ def show_login_ui():
     # 🧱 Center layout using columns
     col1, col2, col3 = st.columns([1, 2, 1])
 
-    with col2:
-        st.markdown("## ⚡ QuantVision")
-        st.markdown("##### AI-powered stock prediction platform")
-        st.write("")
-
         return True  # just UI, no button here
