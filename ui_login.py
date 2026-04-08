@@ -1,92 +1,90 @@
 import streamlit as st
 
-# 1. Initialize session state at the VERY top
+def show_login_ui():
+    # 🌌 Ultra-Modern Background & Centering Logic
+    st.markdown("""
+        <style>
+        /* Force the app to cover the full viewport and center everything */
+        .stApp {
+            background: radial-gradient(circle at top right, #2c5364, #0f2027);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Container for the login content */
+        .login-card {
+            text-align: center;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .brand-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #00f5c3;
+            margin-bottom: 0px;
+        }
+
+        .brand-subtitle {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+        }
+
+        /* The Bold Centered LOGIN Text */
+        .login-header {
+            font-size: 2rem;
+            font-weight: 900;
+            color: #ffffff;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+        }
+
+        /* Style for the Google Button */
+        div.stButton > button {
+            width: 100% !important;
+            background-color: white !important;
+            color: #1f2937 !important;
+            font-weight: 700 !important;
+            border-radius: 50px !important;
+            border: none !important;
+            padding: 10px 0px !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # 🧱 The Actual UI Structure
+    st.markdown('<div class="login-card">', unsafe_allow_html=True)
+    
+    st.markdown('<div class="brand-title">⚡ QuantVision</div>', unsafe_allow_html=True)
+    st.markdown('<div class="brand-subtitle">AI-powered stock prediction platform</div>', unsafe_allow_html=True)
+    
+    # This is the bold, centered "LOGIN" you asked for
+    st.markdown('<div class="login-header">LOGIN</div>', unsafe_allow_html=True)
+
+    if st.button("🚀 Continue with Google"):
+        st.session_state.logged_in = True
+        st.rerun()
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# Navigation logic
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
-def show_login_ui():
-    st.markdown("""
-    <style>
-    .stApp {
-        background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
-    }
-
-    @keyframes float {
-        0% { transform: translateY(0px); }
-        50% { transform: translateY(-10px); }
-        100% { transform: translateY(0px); }
-    }
-
-    .centered-wrapper {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        z-index: 999;
-    }
-
-    .glass-card {
-        background: rgba(255, 255, 255, 0.03);
-        backdrop-filter: blur(25px);
-        padding: 60px;
-        border-radius: 32px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        text-align: center;
-        animation: float 6s ease-in-out infinite;
-        max-width: 450px;
-    }
-
-    .brand-logo {
-        font-size: 3rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #00f5c3 0%, #4fc3f7 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 10px;
-    }
-
-    /* Target the button specifically */
-    div.stButton > button {
-        background-color: white !important;
-        color: #1f2937 !important;
-        border-radius: 50px !important;
-        padding: 12px 40px !important;
-        font-weight: 700 !important;
-        width: 100%;
-        border: none !important;
-        transition: 0.3s;
-    }
-    
-    div.stButton > button:hover {
-        transform: scale(1.05) !important;
-        box-shadow: 0 10px 20px rgba(0,245,197,0.2) !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-    st.markdown('<div class="centered-wrapper">', unsafe_allow_html=True)
-    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-    st.markdown('<div class="brand-logo">⚡ QuantVision</div>', unsafe_allow_html=True)
-    st.markdown('<p style="color:#64748b; letter-spacing:2px; margin-bottom:30px;">INSTITUTIONAL TERMINAL</p>', unsafe_allow_html=True)
-
-    # The Logic Fix
-    if st.button("🚀 Continue with Google"):
-        st.session_state.logged_in = True
-        st.rerun()  # Forces streamlit to refresh and see that logged_in is now True
-
-    st.markdown('</div></div>', unsafe_allow_html=True)
-
-# ─── NAVIGATION LOGIC ───
 if not st.session_state.logged_in:
     show_login_ui()
 else:
-    # This is where your actual app code goes
-    if st.sidebar.button("Logout"):
+    st.title("Welcome to the Terminal")
+    if st.button("Logout"):
         st.session_state.logged_in = False
         st.rerun()
-
-    st.title("📈 Market Dashboard")
-    st.write("Welcome back, Chief. The markets are active.")
-    # Add your charts and tabs here...
