@@ -1,5 +1,7 @@
 import streamlit as st
 import numpy as np
+from auth import login
+from ui_login import show_login_ui
 from streamlit_oauth import OAuth2Component
 import requests
 import plotly.graph_objects as go
@@ -21,58 +23,15 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-#---------------------login--------------------------------------________
+from auth import login
+from ui_login import show_login_ui
 
-CLIENT_ID = st.secrets["CLIENT_ID"]
-CLIENT_SECRET = st.secrets["CLIENT_SECRET"]
+# 🎨 Show login UI
+show_login_ui()
 
-AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-TOKEN_URL = "https://oauth2.googleapis.com/token"
-REVOKE_URL = "https://oauth2.googleapis.com/revoke"
-
-REDIRECT_URI = "https://stock-predictor-nyo7pgbptgema3qnwhw86n.streamlit.app"
-
-oauth2 = OAuth2Component(
-    CLIENT_ID,
-    CLIENT_SECRET,
-    AUTHORIZE_URL,
-    TOKEN_URL,
-    REVOKE_URL
-)
-
-if "user" not in st.session_state:
-    result = oauth2.authorize_button(
-        name="🔐 Continue with Google",
-        redirect_uri=REDIRECT_URI,
-        scope="openid email profile",
-        key="google_login",
-    )
-
-    if result:
-        token = result["token"]
-        user_info = requests.get(
-            "https://www.googleapis.com/oauth2/v1/userinfo",
-            params={"access_token": token["access_token"]}
-        ).json()
-
-        st.session_state["user"] = user_info
-        st.rerun()
-
-# 🚫 BLOCK APP BEFORE UI LOADS
-if "user" not in st.session_state:
-    st.warning("Please login to access the app")
+# 🔐 Auth gate
+if not login():
     st.stop()
-
-#-------------------UI-------------------for login
-
-user = st.session_state["user"]
-
-st.sidebar.success(f"👤 {user['name']}")
-st.sidebar.image(user["picture"], width=60)
-
-if st.sidebar.button("Logout"):
-    del st.session_state["user"]
-    st.rerun()
 
 # ─── Global CSS ───────────────────────────────────────────────────────────────
 st.markdown("""
