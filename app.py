@@ -502,87 +502,92 @@ to [0,1] before training and inverse-transformed for output.
 
         # ── Chart ──
 
-st.markdown('<div class="sec-header">📊 Quant Intelligence: Price Variance Inference</div>', unsafe_allow_html=True)
+st.markdown("""
+    <style>
+    .chart-container {
+        border-radius: 10px;
+        padding: 15px;
+        background-color: #111727;
+        border: 1px solid #2d323e;
+        margin-bottom: 20px;
+    }
+    .sec-header {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #ffffff;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-# Configuration for the chart look
+st.markdown('<div class="sec-header">📈 Interactive Prediction Chart</div>', unsafe_allow_html=True)
+
+# Data Preparation
 n = min(120, len(r['actual']))
 xs = list(range(n))
-actual_prices = r['actual'][-n:].flatten()
-predicted_prices = r['predictions'][-n:].flatten()
+actual_vals = r['actual'][-n:].flatten()
+pred_vals = r['predictions'][-n:].flatten()
 
 fig = go.Figure()
 
-# 1. Actual Price Area (Gradient Fill)
+# Actual Price (Solid line with area fill)
 fig.add_trace(go.Scatter(
     x=xs,
-    y=actual_prices,
+    y=actual_vals,
+    mode='lines',
+    name='Actual Price',
+    line=dict(color='#00d1ff', width=2.5),
     fill='tozeroy',
-    fillcolor='rgba(79, 195, 247, 0.1)', # Faint Blue
-    mode='lines',
-    name='Market Actual',
-    line=dict(color='#4fc3f7', width=3),
-    hovertemplate='Actual: ₹%{y:,.2f}<extra></extra>'
+    fillcolor='rgba(0, 209, 255, 0.05)', # Subtle glow effect
+    hovertemplate='Actual: ₹%{y:.2f}<extra></extra>'
 ))
 
-# 2. Predicted Price (Neon Dash)
+# Predicted Price (Clean dashed line)
 fig.add_trace(go.Scatter(
     x=xs,
-    y=predicted_prices,
+    y=pred_vals,
     mode='lines',
-    name='SVR Inference',
-    line=dict(color='#00f5c3', width=3, dash='dot'),
-    hovertemplate='Predicted: ₹%{y:,.2f}<extra></extra>'
+    name='Model Prediction',
+    line=dict(color='#00ffa3', width=2, dash='dot'),
+    hovertemplate='Predicted: ₹%{y:.2f}<extra></extra>'
 ))
 
-# 3. Layout Styling (Matching your Global CSS)
+# Layout Enhancements
 fig.update_layout(
     template="plotly_dark",
-    height=500,
-    paper_bgcolor='rgba(0,0,0,0)',  # Fully transparent to show your CSS background
+    height=450,
+    paper_bgcolor='rgba(0,0,0,0)', # Transparent background
     plot_bgcolor='rgba(0,0,0,0)',
-    margin=dict(l=0, r=0, t=20, b=0),
+    margin=dict(l=0, r=0, t=30, b=0),
     hovermode="x unified",
-    
-    # Font settings to match JetBrains Mono
-    font=dict(family="JetBrains Mono, monospace", size=12, color="#a0b0c8"),
-    
+    hoverlabel=dict(bgcolor="#1f2937", font_size=13, font_family="Inter"),
     legend=dict(
         orientation="h",
         yanchor="bottom",
         y=1.02,
         xanchor="right",
-        x=1,
-        bgcolor="rgba(0,0,0,0)"
+        x=1
     ),
-    
     xaxis=dict(
-        title="Relative Trading Horizon",
-        showgrid=True,
-        gridcolor='#1a2540',
-        linecolor='#1a2540',
-        # Adds the Range Slider for better UX
-        rangeslider=dict(visible=True, thickness=0.05),
-        type="linear"
+        showgrid=False,
+        title="Recent Trading Days",
+        color="#94a3b8"
     ),
-    
     yaxis=dict(
-        title="Asset Price (₹)",
         showgrid=True,
-        gridcolor='#1a2540',
-        linecolor='#1a2540',
-        side="right" # Professional charts often put price on the right
+        gridcolor="#2d323e",
+        title="Price (₹)",
+        color="#94a3b8",
+        side="right" # Professional financial charts often put Y-axis on the right
     )
 )
 
-# Display
-st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-
-st.markdown("""
-<div class="info-box" style="font-size: 0.7rem; border-left-color: var(--warn); opacity: 0.8;">
-    <b>RISK PROTOCOL:</b> Machine Learning models struggle with black-swan events. 
-    The <b>Inference Line</b> represents a statistical probability, not a certainty.
-</div>
-""", unsafe_allow_html=True)
+# Render inside a styled container
+with st.container():
+    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 2 — Model Performance
