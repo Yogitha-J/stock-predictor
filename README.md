@@ -4,7 +4,7 @@ A stock market prediction system built with LSTM (Long Short-Term Memory) neural
 Predicts NSE/BSE stock prices and generates Buy / Sell / Hold trading signals.
 
 ## 🚀 Live Demo
-> Deployed on Streamlit Cloud — [https://stock-predictor-b6sxpcnfsh88tsrxnmfl25.streamlit.app/]
+> Deployed on Streamlit Cloud — [https://stock-predictor-nyo7pgbptgema3qnwhw86n.streamlit.app/]
 
 ## 📌 Features
 - **Live prediction** — fetches real-time NSE data via yfinance
