@@ -21,15 +21,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-from auth import login
-from ui_login import show_login_ui
-
-# 🎨 Show login UI
-show_login_ui()
-
-# 🔐 Auth gate
-if not login():
-    st.stop()
 
 # ─── Global CSS ───────────────────────────────────────────────────────────────
 st.markdown("""
