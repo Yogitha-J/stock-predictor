@@ -590,19 +590,16 @@ with tab2:
         st.markdown('<div class="fancy-divider"></div>', unsafe_allow_html=True)
 
         # ── 1. Full Prediction Chart ──
-        st.markdown('<div class="sec-header">Full Test Period — Actual vs Predicted</div>', unsafe_allow_html=True)
+ st.markdown('<div class="sec-header">Full Test Period — Actual vs Predicted</div>', unsafe_allow_html=True)
         fig3 = go.Figure()
-        fig3.add_trace(go.Scatter(y=r['actual'].flatten(), name='Actual Price', line=dict(color='#00d1ff', width=2), fill='tozeroy', fillcolor='rgba(0, 209, 255, 0.05)'))
-        fig3.add_trace(go.Scatter(y=r['predictions'].flatten(), name='Model Prediction', line=dict(color='#00ffa3', width=1.5, dash='dash')))
-        
+        fig3.add_trace(go.Scatter(y=r['actual'].flatten(), name='Actual', line=dict(color='#4fc3f7', width=2), fill='tozeroy', fillcolor='rgba(79, 195, 247, 0.05)'))
+        fig3.add_trace(go.Scatter(y=r['predictions'].flatten(), name='Predicted', line=dict(color='#00f5c3', width=1.5, dash='dash')))
         fig3.update_layout(
             template="plotly_dark", height=350, margin=dict(l=0, r=0, t=20, b=0),
             hovermode="x unified", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-            yaxis=dict(side="right", title="Price (₹)")
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
         )
         st.plotly_chart(fig3, use_container_width=True)
-
         # ── 2. Scatter: Actual vs Predicted (Fixed Labels) ──
         sc_col1, sc_col2 = st.columns([2, 1])
         with sc_col1:
