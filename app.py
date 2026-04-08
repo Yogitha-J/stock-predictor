@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import plotly.graph_objects as go
+import plotly.express as px
 from matplotlib.gridspec import GridSpec
 import yfinance as yf
 import pandas as pd
@@ -593,150 +594,212 @@ with st.container():
 # TAB 2 — Model Performance
 # ══════════════════════════════════════════════════════════════════════════════
 with tab2:
+
     if st.session_state.results is None:
+
         st.markdown("""
-<div class="info-box" style="text-align:center;padding:2rem;border-left:3px solid #7b61ff">
-    <span style="font-size:2rem">📊</span><br><br>
-    <b style="color:#e2e8f8;font-size:1rem">No results yet</b><br>
-    <span style="color:#4a5568">Run a prediction in the <b>Live Prediction</b> tab first.</span>
-</div>""", unsafe_allow_html=True)
+
+        <div class="info-box" style="text-align:center;padding:2rem;border-left:3px solid #7b61ff">
+
+            <span style="font-size:2rem">📊</span><br><br>
+
+            <b style="color:#e2e8f8;font-size:1rem">No results yet</b><br>
+
+            <span style="color:#4a5568">Run a prediction in the <b>Live Prediction</b> tab first.</span>
+
+        </div>""", unsafe_allow_html=True)
+
     else:
+
         r = st.session_state.results
+
         st.markdown(f'<div class="sec-header">📊 Performance Report · {r["name"]}</div>', unsafe_allow_html=True)
 
+
+
         # ── Error Metrics ──
+
         mape = float(np.mean(np.abs((r['actual'] - r['predictions']) / r['actual'])) * 100)
+
         max_err = float(np.max(np.abs(r['actual'] - r['predictions'])))
+
+
 
         col_a, col_b = st.columns(2, gap="large")
 
-        with col_a:
-            st.markdown('<div class="sec-header" style="font-size:0.78rem">Error Metrics</div>', unsafe_allow_html=True)
-            st.markdown(f"""
-<div class="stat-grid">
-  <div class="stat-item">
-    <div class="stat-val">₹{r['rmse']:,.1f}</div>
-    <div class="stat-lbl">RMSE</div>
-  </div>
-  <div class="stat-item">
-    <div class="stat-val">₹{r['mae']:,.1f}</div>
-    <div class="stat-lbl">MAE</div>
-  </div>
-  <div class="stat-item">
-    <div class="stat-val">{mape:.2f}%</div>
-    <div class="stat-lbl">MAPE</div>
-  </div>
-  <div class="stat-item">
-    <div class="stat-val">{r['r2']:.4f}</div>
-    <div class="stat-lbl">R² Score</div>
-  </div>
-  <div class="stat-item">
-    <div class="stat-val">{r['acc']:.1f}%</div>
-    <div class="stat-lbl">Accuracy</div>
-  </div>
-  <div class="stat-item">
-    <div class="stat-val">₹{max_err:,.1f}</div>
-    <div class="stat-lbl">Max Error</div>
-  </div>
-</div>""", unsafe_allow_html=True)
 
-            st.markdown("""
-<div class="info-box" style="margin-top:1rem">
-<b>RMSE (Root Mean Square Error)</b> — Average magnitude of prediction error in ₹. 
-Lower is better. Penalizes large errors more than small ones.<br><br>
-<b>MAE (Mean Absolute Error)</b> — Average absolute deviation between predicted 
-and actual price. More interpretable than RMSE.<br><br>
-<b>MAPE</b> — Mean Absolute Percentage Error. Shows error as % of actual price — 
-useful for comparing across stocks of different price levels.<br><br>
-<b>R² Score</b> — How much variance in price is explained by the model. 
-1.0 = perfect, 0 = no better than mean, negative = worse than mean.
-</div>""", unsafe_allow_html=True)
+
+        with col_a:
+
+            st.markdown('<div class="sec-header" style="font-size:0.78rem">Error Metrics</div>', unsafe_allow_html=True)
+
+            st.markdown(f"""
+
+            <div class="stat-grid">
+
+              <div class="stat-item"><div class="stat-val">₹{r['rmse']:,.1f}</div><div class="stat-lbl">RMSE</div></div>
+
+              <div class="stat-item"><div class="stat-val">₹{r['mae']:,.1f}</div><div class="stat-lbl">MAE</div></div>
+
+              <div class="stat-item"><div class="stat-val">{mape:.2f}%</div><div class="stat-lbl">MAPE</div></div>
+
+              <div class="stat-item"><div class="stat-val">{r['r2']:.4f}</div><div class="stat-lbl">R² Score</div></div>
+
+              <div class="stat-item"><div class="stat-val">{r['acc']:.1f}%</div><div class="stat-lbl">Accuracy</div></div>
+
+              <div class="stat-item"><div class="stat-val">₹{max_err:,.1f}</div><div class="stat-lbl">Max Error</div></div>
+
+            </div>""", unsafe_allow_html=True)
+
+
+
+            st.markdown("""<div class="info-box" style="margin-top:1rem">
+
+            <b>Metrics Guide:</b> RMSE penalizes large outliers, while MAE shows average "real-world" deviation. 
+
+            An R² Score near 1.0 indicates excellent trend capture.
+
+            </div>""", unsafe_allow_html=True)
+
+
 
         with col_b:
+
             st.markdown('<div class="sec-header" style="font-size:0.78rem">Residuals Distribution</div>', unsafe_allow_html=True)
+
             residuals = (r['actual'] - r['predictions']).flatten()
-            fig2, ax2 = plt.subplots(figsize=(6, 3.5))
-            set_dark_chart(fig2, ax2)
-            ax2.hist(residuals, bins=40, color='#7b61ff', alpha=0.75, edgecolor='#1a2540', linewidth=0.4)
-            ax2.axvline(0, color='#00f5c3', linewidth=1.5, linestyle='--', label='Zero error')
-            ax2.axvline(residuals.mean(), color='#ff4d6d', linewidth=1.2, linestyle=':', label=f'Mean: ₹{residuals.mean():.1f}')
-            ax2.set_xlabel('Residual (₹)', color='#4a5568', fontsize=8)
-            ax2.set_ylabel('Frequency', color='#4a5568', fontsize=8)
-            ax2.legend(facecolor='#0b1220', edgecolor='#1a2540', labelcolor='#a0b0c8', fontsize=7)
-            st.pyplot(fig2)
-            plt.close(fig2)
 
-            st.markdown(f"""
-<div class="info-box">
-<b>Reading this chart:</b><br>
-A well-performing model has residuals centered near <b style="color:#00f5c3">zero</b> 
-with a roughly bell-shaped distribution. Skew or fat tails indicate the model 
-struggles with extreme price moves.<br><br>
-Current mean residual: <b>₹{residuals.mean():.2f}</b> 
-({'slight over-prediction' if residuals.mean() < 0 else 'slight under-prediction'})
-</div>""", unsafe_allow_html=True)
+            
+
+            # Interactive Histogram
+
+            fig_hist = px.histogram(
+
+                residuals, nbins=40, 
+
+                color_discrete_sequence=['#7b61ff'],
+
+                opacity=0.7
+
+            )
+
+            fig_hist.update_layout(
+
+                template="plotly_dark", height=220, margin=dict(l=10, r=10, t=10, b=10),
+
+                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+
+                showlegend=False
+
+            )
+
+            fig_hist.add_vline(x=0, line_dash="dash", line_color="#00f5c3")
+
+            st.plotly_chart(fig_hist, use_container_width=True, config={'displayModeBar': False})
+
+
+
+            st.markdown(f"""<div class="info-box">
+
+            Current mean residual: <b>₹{residuals.mean():.2f}</b><br>
+
+            <i>{('Slight over-prediction' if residuals.mean() < 0 else 'Slight under-prediction')}</i>
+
+            </div>""", unsafe_allow_html=True)
+
+
 
         st.markdown('<div class="fancy-divider"></div>', unsafe_allow_html=True)
 
-        # ── Full prediction chart ──
+
+
+        # ── 1. Full Prediction Chart (Interactive) ──
+
         st.markdown('<div class="sec-header">Full Test Period — Actual vs Predicted</div>', unsafe_allow_html=True)
-        fig3, ax3 = plt.subplots(figsize=(12, 4))
-        set_dark_chart(fig3, ax3)
-        ax3.fill_between(range(len(r['actual'])), r['actual'].flatten(), alpha=0.1, color='#4fc3f7')
-        ax3.plot(r['actual'],      color='#4fc3f7', lw=1.8, label='Actual',    alpha=0.9)
-        ax3.plot(r['predictions'], color='#00f5c3', lw=1.4, label='Predicted', linestyle='--', alpha=0.85)
-        ax3.set_xlabel('Test Set Index', color='#4a5568', fontsize=8)
-        ax3.set_ylabel('Price (₹)',      color='#4a5568', fontsize=8)
-        ax3.legend(facecolor='#0b1220', edgecolor='#1a2540', labelcolor='#a0b0c8', fontsize=8)
-        st.pyplot(fig3)
-        plt.close(fig3)
 
-        # ── Scatter: Actual vs Predicted ──
-        st.markdown('<div class="sec-header">Scatter · Actual vs Predicted</div>', unsafe_allow_html=True)
+        fig3 = go.Figure()
+
+        fig3.add_trace(go.Scatter(y=r['actual'].flatten(), name='Actual', line=dict(color='#4fc3f7', width=2), fill='tozeroy', fillcolor='rgba(79, 195, 247, 0.05)'))
+
+        fig3.add_trace(go.Scatter(y=r['predictions'].flatten(), name='Predicted', line=dict(color='#00f5c3', width=1.5, dash='dash')))
+
+        
+
+        fig3.update_layout(
+
+            template="plotly_dark", height=350, margin=dict(l=0, r=0, t=20, b=0),
+
+            hovermode="x unified", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+
+        )
+
+        st.plotly_chart(fig3, use_container_width=True)
+
+
+
+        # ── 2. Scatter & Info ──
+
         sc_col1, sc_col2 = st.columns([2, 1])
+
         with sc_col1:
-            fig4, ax4 = plt.subplots(figsize=(6, 4))
-            set_dark_chart(fig4, ax4)
-            ax4.scatter(r['actual'], r['predictions'], color='#7b61ff', alpha=0.4, s=8, edgecolors='none')
-            mn = min(r['actual'].min(), r['predictions'].min())
-            mx = max(r['actual'].max(), r['predictions'].max())
-            ax4.plot([mn, mx], [mn, mx], color='#00f5c3', lw=1.5, linestyle='--', label='Perfect fit')
-            ax4.set_xlabel('Actual Price (₹)',    color='#4a5568', fontsize=8)
-            ax4.set_ylabel('Predicted Price (₹)', color='#4a5568', fontsize=8)
-            ax4.legend(facecolor='#0b1220', edgecolor='#1a2540', labelcolor='#a0b0c8', fontsize=8)
-            st.pyplot(fig4)
-            plt.close(fig4)
+
+            st.markdown('<div class="sec-header" style="font-size:0.78rem">Scatter · Actual vs Predicted</div>', unsafe_allow_html=True)
+
+            fig4 = px.scatter(x=r['actual'].flatten(), y=r['predictions'].flatten(), opacity=0.4)
+
+            fig4.add_shape(type="line", x0=r['actual'].min(), y0=r['actual'].min(), x1=r['actual'].max(), y1=r['actual'].max(), line=dict(color="#00f5c3", dash="dash"))
+
+            fig4.update_traces(marker=dict(color='#7b61ff', size=6))
+
+            fig4.update_layout(template="plotly_dark", height=300, margin=dict(l=0, r=0, t=10, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+
+            st.plotly_chart(fig4, use_container_width=True)
+
+
+
         with sc_col2:
+
             st.markdown(f"""
-<div class="info-box" style="margin-top:0">
-<b>Ideal scatter:</b><br>
-Points cluster tightly along the <b style="color:#00f5c3">green diagonal</b>. 
-Deviations above = over-prediction, below = under-prediction.<br><br>
-<b>Train samples:</b> {r['X_train_len']:,}<br>
-<b>Test samples:</b> {r['X_test_len']:,}<br>
-<b>Lookback:</b> {r['seq_len']} days<br>
-<b>Split:</b> 80 / 20
-</div>""", unsafe_allow_html=True)
 
-        st.markdown('<div class="fancy-divider"></div>', unsafe_allow_html=True)
+            <div class="info-box" style="margin-top:2.5rem">
 
-        # ── Rolling error ──
-        st.markdown('<div class="sec-header">Rolling 20-Day MAE</div>', unsafe_allow_html=True)
+            <b>Dataset Stats:</b><br>
+
+            • Train samples: {r['X_train_len']:,}<br>
+
+            • Test samples: {r['X_test_len']:,}<br>
+
+            • Lookback: {r['seq_len']} days<br>
+
+            • Split: 80 / 20
+
+            </div>""", unsafe_allow_html=True)
+
+
+
+        # ── 3. Rolling Error (Interactive) ──
+
+        st.markdown('<div class="sec-header">Rolling 20-Day MAE (Volatility Analysis)</div>', unsafe_allow_html=True)
+
         rolling_err = pd.Series(np.abs(residuals)).rolling(20).mean()
-        fig5, ax5 = plt.subplots(figsize=(12, 3))
-        set_dark_chart(fig5, ax5)
-        ax5.fill_between(range(len(rolling_err)), rolling_err, alpha=0.2, color='#ff4d6d')
-        ax5.plot(rolling_err, color='#ff4d6d', lw=1.5)
-        ax5.set_xlabel('Test Set Index', color='#4a5568', fontsize=8)
-        ax5.set_ylabel('MAE (₹)',        color='#4a5568', fontsize=8)
-        st.pyplot(fig5)
-        plt.close(fig5)
-        st.markdown("""<div class="info-box">
-<b>Rolling MAE</b> shows how model error changes over time. Spikes indicate 
-periods of high volatility where SVR struggled — often around earnings 
-announcements, macro events, or regime changes.
-</div>""", unsafe_allow_html=True)
 
+        
+
+        fig5 = go.Figure()
+
+        fig5.add_trace(go.Scatter(y=rolling_err, name='Rolling MAE', line=dict(color='#ff4d6d', width=2), fill='tozeroy', fillcolor='rgba(255, 77, 109, 0.1)'))
+
+        fig5.update_layout(
+
+            template="plotly_dark", height=250, margin=dict(l=0, r=0, t=10, b=0),
+
+            hovermode="x", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
+
+        )
+
+        st.plotly_chart(fig5, use_container_width=True)
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 3 — How It Works
 # ══════════════════════════════════════════════════════════════════════════════
