@@ -1,7 +1,8 @@
 streamlit
 numpy
 pandas
-matplotlib
-yfinance
 scikit-learn
+yfinance
 plotly
+streamlit-oauth
+requests
