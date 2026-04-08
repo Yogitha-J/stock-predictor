@@ -2,6 +2,7 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import plotly.graph_objects as go
 from matplotlib.gridspec import GridSpec
 import yfinance as yf
 import pandas as pd
@@ -501,21 +502,66 @@ to [0,1] before training and inverse-transformed for output.
 
         # ── Chart ──
         st.markdown('<div class="sec-header">📈 Prediction vs Actual — Last 120 Days</div>', unsafe_allow_html=True)
-        fig, ax = plt.subplots(figsize=(12, 4.5))
-        set_dark_chart(fig, ax)
-
         n = min(120, len(r['actual']))
-        xs = np.arange(n)
-        ax.fill_between(xs, r['actual'][-n:].flatten(), alpha=0.12, color='#4fc3f7')
-        ax.plot(xs, r['actual'][-n:],      color='#4fc3f7', lw=2,   label='Actual',    alpha=0.9)
-        ax.plot(xs, r['predictions'][-n:], color='#00f5c3', lw=1.8, label='Predicted', linestyle='--')
+xs = np.arange(n)
 
-        ax.set_xlabel('Trading Days', color='#4a5568', fontsize=8, labelpad=8)
-        ax.set_ylabel('Price (₹)', color='#4a5568', fontsize=8, labelpad=8)
-        legend = ax.legend(facecolor='#0b1220', edgecolor='#1a2540',
-                           labelcolor='#a0b0c8', fontsize=8)
-        st.pyplot(fig)
-        plt.close(fig)
+actual_vals = r['actual'][-n:].flatten()
+pred_vals   = r['predictions'][-n:].flatten()
+
+fig = go.Figure()
+
+# Actual line
+fig.add_trace(go.Scatter(
+    x=xs,
+    y=actual_vals,
+    mode='lines',
+    name='Actual',
+    line=dict(color='#4fc3f7', width=2),
+    hovertemplate='Day %{x}<br>Actual: ₹%{y:.2f}<extra></extra>'
+))
+
+# Predicted line
+fig.add_trace(go.Scatter(
+    x=xs,
+    y=pred_vals,
+    mode='lines',
+    name='Predicted',
+    line=dict(color='#00f5c3', width=2, dash='dash'),
+    hovertemplate='Day %{x}<br>Predicted: ₹%{y:.2f}<extra></extra>'
+))
+
+# Layout (dark theme aligned with your UI)
+fig.update_layout(
+    height=420,
+    margin=dict(l=20, r=20, t=20, b=20),
+    plot_bgcolor='#080d17',
+    paper_bgcolor='#03050a',
+    font=dict(color='#a0b0c8', size=11),
+    xaxis=dict(
+        title='Trading Days',
+        showgrid=True,
+        gridcolor='#1a2540',
+        zeroline=False
+    ),
+    yaxis=dict(
+        title='Price (₹)',
+        showgrid=True,
+        gridcolor='#1a2540',
+        zeroline=False
+    ),
+    legend=dict(
+        bgcolor='#0b1220',
+        bordercolor='#1a2540',
+        borderwidth=1
+    ),
+    hovermode='x unified'
+)
+
+# THIS enables zoom, pan, reset, etc.
+st.plotly_chart(fig, use_container_width=True, config={
+    "scrollZoom": True,   # zoom with scroll
+    "displayModeBar": True
+})
 
         st.caption("⚠ This is a machine learning model prediction, not financial advice. Past performance does not guarantee future results.")
 
