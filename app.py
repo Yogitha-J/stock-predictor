@@ -29,7 +29,7 @@ st.markdown("<h1 style='text-align:center;'>📈 AI Stock Predictor</h1>", unsaf
 
 result = oauth2.authorize_button(
     "Login with Google",
-    redirect_uri="http://localhost:8501",
+    redirect_uri="https://stock-predictor-nyo7pgbptgema3qnwhw86n.streamlit.app",
     scope="openid email profile"
 )
 
