@@ -1,0 +1,8 @@
+streamlit
+numpy
+matplotlib
+scikit-learn
+yfinance
+tensorflow-cpu
+python-dotenv
+streamlit-oauth

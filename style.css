@@ -1,0 +1,46 @@
+/* Background */
+.stApp {
+    background: linear-gradient(135deg, #0a0f2c, #0d1b4c);
+    color: white;
+}
+
+/* Sidebar */
+section[data-testid="stSidebar"] {
+    background-color: #0a0f2c;
+}
+
+/* Glass card */
+.card {
+    background: rgba(255,255,255,0.05);
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0px 0px 20px rgba(0,255,255,0.2);
+    margin-bottom: 20px;
+}
+
+/* Title */
+.title {
+    font-size: 32px;
+    font-weight: bold;
+}
+
+/* Button */
+.stButton>button {
+    background: linear-gradient(90deg, #00ffcc, #00ccff);
+    color: black;
+    border-radius: 25px;
+    height: 45px;
+    width: 100%;
+    font-weight: bold;
+    border: none;
+}
+
+/* Input */
+.stTextInput>div>div>input {
+    border-radius: 10px;
+}
+
+/* Chart spacing */
+.block-container {
+    padding-top: 2rem;
+}
