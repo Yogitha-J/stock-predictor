@@ -590,7 +590,7 @@ with tab2:
         st.markdown('<div class="fancy-divider"></div>', unsafe_allow_html=True)
 
         # ── 1. Full Prediction Chart ──
- st.markdown('<div class="sec-header">Full Test Period — Actual vs Predicted</div>', unsafe_allow_html=True)
+        st.markdown('<div class="sec-header">Full Test Period — Actual vs Predicted</div>', unsafe_allow_html=True)
         fig3 = go.Figure()
         fig3.add_trace(go.Scatter(y=r['actual'].flatten(), name='Actual', line=dict(color='#4fc3f7', width=2), fill='tozeroy', fillcolor='rgba(79, 195, 247, 0.05)'))
         fig3.add_trace(go.Scatter(y=r['predictions'].flatten(), name='Predicted', line=dict(color='#00f5c3', width=1.5, dash='dash')))
