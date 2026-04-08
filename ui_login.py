@@ -1,9 +1,12 @@
 import streamlit as st
 
+# 1. Initialize session state at the VERY top
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+
 def show_login_ui():
     st.markdown("""
     <style>
-    /* Full Page Override for perfect centering */
     .stApp {
         background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
     }
@@ -14,12 +17,6 @@ def show_login_ui():
         100% { transform: translateY(0px); }
     }
 
-    @keyframes borderGlow {
-        0% { border-color: rgba(0, 245, 197, 0.3); box-shadow: 0 0 10px rgba(0, 245, 197, 0.1); }
-        50% { border-color: rgba(79, 195, 247, 0.6); box-shadow: 0 0 25px rgba(79, 195, 247, 0.3); }
-        100% { border-color: rgba(0, 245, 197, 0.3); box-shadow: 0 0 10px rgba(0, 245, 197, 0.1); }
-    }
-
     .centered-wrapper {
         display: flex;
         flex-direction: column;
@@ -28,7 +25,6 @@ def show_login_ui():
         position: fixed;
         top: 0; left: 0; right: 0; bottom: 0;
         z-index: 999;
-        font-family: 'Inter', sans-serif;
     }
 
     .glass-card {
@@ -38,80 +34,59 @@ def show_login_ui():
         border-radius: 32px;
         border: 1px solid rgba(255, 255, 255, 0.08);
         text-align: center;
-        animation: float 6s ease-in-out infinite, borderGlow 4s infinite;
+        animation: float 6s ease-in-out infinite;
         max-width: 450px;
     }
 
     .brand-logo {
         font-size: 3rem;
         font-weight: 800;
-        letter-spacing: -1px;
         background: linear-gradient(135deg, #00f5c3 0%, #4fc3f7 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         margin-bottom: 10px;
     }
 
-    .tagline {
-        color: #64748b;
-        font-size: 1rem;
-        margin-bottom: 40px;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-    }
-
-    /* Modern Google Button Style */
-    .google-btn-container {
-        display: flex;
-        justify-content: center;
-        transition: transform 0.2s;
-    }
-
-    .google-btn-container:hover {
-        transform: scale(1.05);
-    }
-
-    /* Targeting Streamlit Button specifically */
+    /* Target the button specifically */
     div.stButton > button {
         background-color: white !important;
         color: #1f2937 !important;
-        border: none !important;
         border-radius: 50px !important;
-        padding: 12px 30px !important;
-        font-weight: 600 !important;
-        display: flex !important;
-        align-items: center !important;
-        gap: 10px !important;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
+        padding: 12px 40px !important;
+        font-weight: 700 !important;
+        width: 100%;
+        border: none !important;
+        transition: 0.3s;
+    }
+    
+    div.stButton > button:hover {
+        transform: scale(1.05) !important;
+        box-shadow: 0 10px 20px rgba(0,245,197,0.2) !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-    # Centered Layout
     st.markdown('<div class="centered-wrapper">', unsafe_allow_html=True)
-    
     st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-    
     st.markdown('<div class="brand-logo">⚡ QuantVision</div>', unsafe_allow_html=True)
-    st.markdown('<div class="tagline">Institutional Intelligence</div>', unsafe_allow_html=True)
-    
-    st.markdown('<div style="margin-top: 20px;">', unsafe_allow_html=True)
-    # Using columns inside the container to force button width behavior if needed
+    st.markdown('<p style="color:#64748b; letter-spacing:2px; margin-bottom:30px;">INSTITUTIONAL TERMINAL</p>', unsafe_allow_html=True)
+
+    # The Logic Fix
     if st.button("🚀 Continue with Google"):
         st.session_state.logged_in = True
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+        st.rerun()  # Forces streamlit to refresh and see that logged_in is now True
 
-    st.markdown('<p style="color: #475569; font-size: 0.75rem; margin-top: 30px;">Secure One-Tap Authentication</p>', unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True) # End Glass Card
-    st.markdown('</div>', unsafe_allow_html=True) # End Wrapper
+    st.markdown('</div></div>', unsafe_allow_html=True)
 
-# To call it
-if 'logged_in' not in st.session_state:
-    st.session_state.logged_in = False
-
+# ─── NAVIGATION LOGIC ───
 if not st.session_state.logged_in:
     show_login_ui()
 else:
-    st.title("Main Dashboard")
+    # This is where your actual app code goes
+    if st.sidebar.button("Logout"):
+        st.session_state.logged_in = False
+        st.rerun()
+
+    st.title("📈 Market Dashboard")
+    st.write("Welcome back, Chief. The markets are active.")
+    # Add your charts and tabs here...
