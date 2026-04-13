@@ -1,6 +1,5 @@
 import streamlit as st
 import numpy as np
-from streamlit_oauth import OAuth2Component
 import requests
 import plotly.graph_objects as go
 import plotly.express as px
@@ -9,7 +8,10 @@ import pandas as pd
 import warnings
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from sklearn.svm import SVR
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import GRU, Dense, Dropout
+from tensorflow.keras.callbacks import EarlyStopping
 
 warnings.filterwarnings("ignore")
 
@@ -321,7 +323,7 @@ html, body, [class*="css"] {
 st.markdown("""
 <div class="hero">
   <div class="hero-title">QuantVision</div>
-  <div class="hero-sub">AI · SVR Engine · NSE Markets · Real-time Inference</div>
+  <div class="hero-sub">AI · GRU Engine · NSE Markets · Real-time Inference</div>
   <div class="hero-line"></div>
 </div>
 """, unsafe_allow_html=True)
@@ -329,24 +331,26 @@ st.markdown("""
 # ─── Tabs ─────────────────────────────────────────────────────────────────────
 tab1, tab2, tab3 = st.tabs(["⚡  Live Prediction", "📊  Model Performance", "🧠  How It Works"])
 
-# ─── Helper ───────────────────────────────────────────────────────────────────
+# ─── Helper: build 3D sequences for GRU (samples, timesteps, features) ────────
 def make_sequences(scaled_data, seq_len=60):
     X, Y = [], []
     for i in range(seq_len, len(scaled_data)):
-        X.append(scaled_data[i - seq_len:i].flatten())
+        X.append(scaled_data[i - seq_len:i])   # shape: (seq_len, 1)
         Y.append(scaled_data[i, 0])
-    return np.array(X), np.array(Y)
+    return np.array(X), np.array(Y)             # X: (N, seq_len, 1)
 
-def set_dark_chart(fig, axes):
-    fig.patch.set_facecolor('#03050a')
-    for ax in (axes if hasattr(axes, '__iter__') else [axes]):
-        ax.set_facecolor('#080d17')
-        ax.tick_params(colors='#4a5568', labelsize=8)
-        ax.spines['bottom'].set_color('#1a2540')
-        ax.spines['left'].set_color('#1a2540')
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.grid(True, color='#1a2540', linewidth=0.5, linestyle='--', alpha=0.6)
+# ─── Helper: build & compile GRU model ────────────────────────────────────────
+def build_gru_model(seq_len):
+    model = Sequential([
+        GRU(units=64, return_sequences=True, input_shape=(seq_len, 1)),
+        Dropout(0.2),
+        GRU(units=64, return_sequences=False),
+        Dropout(0.2),
+        Dense(units=32, activation='relu'),
+        Dense(units=1)
+    ])
+    model.compile(optimizer='adam', loss='mean_squared_error')
+    return model
 
 # ─── Shared session state so tab2 can use results ─────────────────────────────
 if 'results' not in st.session_state:
@@ -378,33 +382,34 @@ with tab1:
             selected_name = ticker
 
         seq_len_opt = st.select_slider("Lookback window (days)", options=[30, 45, 60, 90], value=60)
+        epochs_opt  = st.select_slider("Training epochs", options=[10, 20, 30, 50], value=20)
         predict_btn = st.button("⚡ Run Prediction", use_container_width=True, type="primary")
 
     with col_info:
         st.markdown('<div class="sec-header">📡 About this engine</div>', unsafe_allow_html=True)
         st.markdown("""
 <div class="info-box fade-up">
-<b>SVR · RBF Kernel</b><br>
-Support Vector Regression with a Radial Basis Function kernel maps complex 
-non-linear price movements into a higher-dimensional feature space, finding 
-the optimal regression hyperplane with maximum margin.
+<b>GRU · Gated Recurrent Unit</b><br>
+A streamlined recurrent architecture that uses <i>reset</i> and <i>update</i> gates 
+to selectively remember or forget past price information — giving it a 
+strong edge over plain RNNs without the parameter overhead of LSTM.
 </div>
 <div class="info-box fade-up delay-1">
-<b>Feature Window</b><br>
+<b>Sequential Feature Window</b><br>
 Each prediction uses a sliding window of the last <i>N</i> closing prices 
-(default 60 days) as a flat feature vector. The model learns temporal 
-dependencies across this window.
+(default 60 days) shaped as a 3-D tensor <code>(batch, timesteps, 1)</code>. 
+The GRU learns temporal dependencies across this sequence end-to-end.
 </div>
 <div class="info-box fade-up delay-2">
 <b>Data Source</b><br>
 5 years of daily OHLCV data via Yahoo Finance. Prices are MinMax scaled 
-to [0,1] before training and inverse-transformed for output.
+to [0, 1] before training and inverse-transformed for output.
 </div>
         """, unsafe_allow_html=True)
 
     # ── Run ──
     if predict_btn:
-        with st.spinner(f"Fetching & training on {selected_name} ..."):
+        with st.spinner(f"Fetching & training GRU on {selected_name} ..."):
             df = yf.download(ticker, start="2018-01-01", progress=False)
             if df.empty:
                 st.error(f"Could not fetch data for `{ticker}`. Check the ticker symbol.")
@@ -417,9 +422,9 @@ to [0,1] before training and inverse-transformed for output.
             scaled = scaler.fit_transform(close_prices)
 
             SEQ_LEN = seq_len_opt
-            X, Y = make_sequences(scaled, SEQ_LEN)
+            X, Y = make_sequences(scaled, SEQ_LEN)     # X shape: (N, SEQ_LEN, 1)
 
-            if len(X) < 20:
+            if len(X) < 50:
                 st.error("Not enough historical data. Try a different ticker.")
                 st.stop()
 
@@ -427,16 +432,25 @@ to [0,1] before training and inverse-transformed for output.
             X_train, X_test = X[:split], X[split:]
             Y_train, Y_test = Y[:split], Y[split:]
 
-            model = SVR(kernel='rbf', C=1e3, gamma=0.1, epsilon=0.01)
-            model.fit(X_train, Y_train)
+            # ── Build & train GRU ──
+            model = build_gru_model(SEQ_LEN)
+            early_stop = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+            history = model.fit(
+                X_train, Y_train,
+                epochs=epochs_opt,
+                batch_size=32,
+                validation_split=0.1,
+                callbacks=[early_stop],
+                verbose=0
+            )
 
-            pred_scaled  = model.predict(X_test).reshape(-1, 1)
+            pred_scaled  = model.predict(X_test, verbose=0)
             predictions  = scaler.inverse_transform(pred_scaled)
             actual        = scaler.inverse_transform(Y_test.reshape(-1, 1))
 
-            last_seq       = scaled[-SEQ_LEN:].flatten().reshape(1, -1)
-            next_scaled    = model.predict(last_seq)
-            next_price     = float(scaler.inverse_transform(next_scaled.reshape(-1, 1))[0][0])
+            last_seq       = scaled[-SEQ_LEN:].reshape(1, SEQ_LEN, 1)
+            next_scaled    = model.predict(last_seq, verbose=0)
+            next_price     = float(scaler.inverse_transform(next_scaled)[0][0])
             price_change   = ((next_price - current_price) / current_price) * 100
 
             rmse  = float(np.sqrt(mean_squared_error(actual, predictions)))
@@ -452,7 +466,9 @@ to [0,1] before training and inverse-transformed for output.
                 price_change=price_change,
                 rmse=rmse, mae=mae, r2=r2, acc=acc,
                 df=df, seq_len=SEQ_LEN,
-                X_train_len=len(X_train), X_test_len=len(X_test)
+                X_train_len=len(X_train), X_test_len=len(X_test),
+                train_loss=history.history['loss'],
+                val_loss=history.history.get('val_loss', [])
             )
 
         r = st.session_state.results
@@ -501,29 +517,19 @@ to [0,1] before training and inverse-transformed for output.
 
         st.markdown('<div class="fancy-divider"></div>', unsafe_allow_html=True)
 
-        # ── Chart ──
-
-st.markdown("""
-    <style>
-    .chart-container {
-        border-radius: 10px;
-        padding: 15px;
-        background-color: #111727;
-        border: 1px solid #2d323e;
-        margin-bottom: 20px;
-    }
-    .sec-header {
-        font-size: 1.2rem;
-        font-weight: 600;
-        color: #ffffff;
-        margin-bottom: 10px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
+        # ── Training Loss Chart ──
+        st.markdown('<div class="sec-header">📉 Training Loss Curve</div>', unsafe_allow_html=True)
+        fig_loss = go.Figure()
+        fig_loss.add_trace(go.Scatter(y=r['train_loss'], name='Train Loss', line=dict(color='#00f5c3', width=2)))
+        if r['val_loss']:
+            fig_loss.add_trace(go.Scatter(y=r['val_loss'], name='Val Loss', line=dict(color='#ff4d6d', width=2, dash='dash')))
+        fig_loss.update_layout(
+            template="plotly_dark", height=250, margin=dict(l=0, r=0, t=10, b=0),
+            hovermode="x unified", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+            xaxis_title="Epoch", yaxis_title="MSE Loss",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+        st.plotly_chart(fig_loss, use_container_width=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 2 — Model Performance
@@ -549,7 +555,6 @@ with tab2:
 
         with col_a:
             st.markdown('<div class="sec-header" style="font-size:0.78rem">Error Metrics</div>', unsafe_allow_html=True)
-            # Unified block to prevent raw text display
             st.markdown(f"""
             <div class="stat-grid">
               <div class="stat-item"><div class="stat-val">₹{r['rmse']:,.1f}</div><div class="stat-lbl">RMSE</div></div>
@@ -566,9 +571,8 @@ with tab2:
 
         with col_b:
             st.markdown('<div class="sec-header" style="font-size:0.78rem">Residuals Distribution</div>', unsafe_allow_html=True)
-            
             fig_hist = px.histogram(
-                residuals, nbins=40, 
+                residuals, nbins=40,
                 color_discrete_sequence=['#7b61ff'],
                 opacity=0.7,
                 labels={'value': 'Error Amount (₹)'}
@@ -593,31 +597,31 @@ with tab2:
         st.markdown('<div class="sec-header">Full Test Period — Actual vs Predicted</div>', unsafe_allow_html=True)
         fig3 = go.Figure()
         fig3.add_trace(go.Scatter(y=r['actual'].flatten(), name='Actual', line=dict(color='#4fc3f7', width=2), fill='tozeroy', fillcolor='rgba(79, 195, 247, 0.05)'))
-        fig3.add_trace(go.Scatter(y=r['predictions'].flatten(), name='Predicted', line=dict(color='#00f5c3', width=1.5, dash='dash')))
+        fig3.add_trace(go.Scatter(y=r['predictions'].flatten(), name='Predicted (GRU)', line=dict(color='#00f5c3', width=1.5, dash='dash')))
         fig3.update_layout(
             template="plotly_dark", height=350, margin=dict(l=0, r=0, t=20, b=0),
             hovermode="x unified", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
         )
         st.plotly_chart(fig3, use_container_width=True)
-        # ── 2. Scatter: Actual vs Predicted (Fixed Labels) ──
+
+        # ── 2. Scatter: Actual vs Predicted ──
         sc_col1, sc_col2 = st.columns([2, 1])
         with sc_col1:
             st.markdown('<div class="sec-header" style="font-size:0.78rem">Scatter · Price Correlation</div>', unsafe_allow_html=True)
-            # labels param fixes the hover, update_layout fixes the axis titles
             fig4 = px.scatter(
-                x=r['actual'].flatten(), 
-                y=r['predictions'].flatten(), 
+                x=r['actual'].flatten(),
+                y=r['predictions'].flatten(),
                 opacity=0.4,
                 labels={'x': 'Actual Price', 'y': 'Predicted Price'}
             )
             fig4.add_shape(type="line", x0=r['actual'].min(), y0=r['actual'].min(), x1=r['actual'].max(), y1=r['actual'].max(), line=dict(color="#00f5c3", dash="dash"))
             fig4.update_traces(marker=dict(color='#7b61ff', size=6))
             fig4.update_layout(
-                template="plotly_dark", height=300, margin=dict(l=0, r=0, t=10, b=30), 
+                template="plotly_dark", height=300, margin=dict(l=0, r=0, t=10, b=30),
                 paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
                 xaxis_title="Actual Market Price (₹)",
-                yaxis_title="Model Prediction (₹)"
+                yaxis_title="GRU Prediction (₹)"
             )
             st.plotly_chart(fig4, use_container_width=True, config={'displayModeBar': False})
 
@@ -634,7 +638,6 @@ with tab2:
         # ── 3. Rolling Error ──
         st.markdown('<div class="sec-header">Rolling 20-Day MAE (Volatility Analysis)</div>', unsafe_allow_html=True)
         rolling_err = pd.Series(np.abs(residuals)).rolling(20).mean()
-        
         fig5 = go.Figure()
         fig5.add_trace(go.Scatter(y=rolling_err, name='Rolling MAE', line=dict(color='#ff4d6d', width=2), fill='tozeroy', fillcolor='rgba(255, 77, 109, 0.1)'))
         fig5.update_layout(
@@ -643,6 +646,7 @@ with tab2:
             yaxis_title="Avg Error (₹)"
         )
         st.plotly_chart(fig5, use_container_width=True)
+
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 3 — How It Works
 # ══════════════════════════════════════════════════════════════════════════════
@@ -653,11 +657,11 @@ with tab3:
         st.markdown('<div class="sec-header">🔬 Model Architecture</div>', unsafe_allow_html=True)
         st.markdown("""
 <div class="info-box">
-<b>Support Vector Regression (SVR)</b> is a supervised learning algorithm derived 
-from Support Vector Machines. Unlike SVMs for classification, SVR fits a 
-hyperplane in a high-dimensional space that deviates from the true values 
-by at most ε (epsilon). It is robust to outliers and generalizes well on 
-financial time-series with limited data.
+<b>Gated Recurrent Unit (GRU)</b> is a recurrent neural network architecture that 
+uses two learned gates — a <i>reset gate</i> and an <i>update gate</i> — to 
+control how much past information to carry forward. Compared to LSTM, GRU 
+has fewer parameters and trains faster while achieving comparable accuracy 
+on financial time-series data.
 </div>""", unsafe_allow_html=True)
 
         st.markdown('<div class="sec-header" style="font-size:0.78rem">Processing Pipeline</div>', unsafe_allow_html=True)
@@ -666,112 +670,107 @@ financial time-series with limited data.
   <div class="pipe-step">
     <div class="pipe-num">01</div>
     <div><div class="pipe-title">Data Ingestion</div>
-    <div class="pipe-desc">5 years of daily OHLCV data is downloaded from Yahoo Finance. 
+    <div class="pipe-desc">5 years of daily OHLCV data is downloaded from Yahoo Finance.
     Only the closing price series is used as the prediction target.</div></div>
   </div>
   <div class="pipe-step">
     <div class="pipe-num">02</div>
     <div><div class="pipe-title">MinMax Scaling</div>
-    <div class="pipe-desc">All closing prices are normalized to [0, 1] using MinMaxScaler. 
-    This prevents large price values from dominating the kernel distance 
-    computation and speeds up convergence.</div></div>
+    <div class="pipe-desc">All closing prices are normalized to [0, 1] using MinMaxScaler.
+    This stabilizes gradient flow through the GRU cells and ensures
+    the sigmoid/tanh activations operate in their sensitive range.</div></div>
   </div>
   <div class="pipe-step">
     <div class="pipe-num">03</div>
-    <div><div class="pipe-title">Sliding Window Sequencing</div>
-    <div class="pipe-desc">A 60-day lookback window creates flat feature vectors. 
-    For day t, the input X = [close(t-60), close(t-59), ..., close(t-1)] 
-    and target Y = close(t). This gives the model temporal context.</div></div>
+    <div><div class="pipe-title">3-D Sequence Construction</div>
+    <div class="pipe-desc">A 60-day lookback window creates tensors of shape
+    (samples, 60, 1). Unlike SVR which flattens the window,
+    GRU processes each timestep recurrently to retain order.</div></div>
   </div>
   <div class="pipe-step">
     <div class="pipe-num">04</div>
     <div><div class="pipe-title">Train / Test Split (80/20)</div>
-    <div class="pipe-desc">Data is split chronologically — first 80% for training, 
-    last 20% for evaluation. Random shuffling is not used to preserve 
+    <div class="pipe-desc">Data is split chronologically — first 80% for training,
+    last 20% for evaluation. Random shuffling is not used to preserve
     temporal ordering and prevent data leakage.</div></div>
   </div>
   <div class="pipe-step">
     <div class="pipe-num">05</div>
-    <div><div class="pipe-title">SVR Training (RBF Kernel)</div>
-    <div class="pipe-desc">The RBF (Radial Basis Function) kernel maps inputs into 
-    infinite-dimensional space. Hyperparameters: C=1000 (regularization), 
-    γ=0.1 (kernel bandwidth), ε=0.01 (tube width).</div></div>
+    <div><div class="pipe-title">GRU Training (Adam + EarlyStopping)</div>
+    <div class="pipe-desc">Two stacked GRU layers (64 units each) with 20% Dropout,
+    followed by a Dense(32) + Dense(1) head. Adam optimizer with MSE
+    loss. EarlyStopping (patience=5) prevents overfitting.</div></div>
   </div>
   <div class="pipe-step">
     <div class="pipe-num">06</div>
     <div><div class="pipe-title">Inference & Inverse Transform</div>
-    <div class="pipe-desc">The last 60 scaled prices form the live input. The model 
-    outputs a scaled prediction which is inverse-transformed back to 
+    <div class="pipe-desc">The last 60 scaled prices are reshaped to (1, 60, 1) for live
+    inference. The model output is inverse-transformed back to
     actual ₹ price using the fitted scaler.</div></div>
   </div>
 </div>""", unsafe_allow_html=True)
 
     with c2:
-        st.markdown('<div class="sec-header">⚙ Hyperparameters</div>', unsafe_allow_html=True)
+        st.markdown('<div class="sec-header">⚙ Architecture Summary</div>', unsafe_allow_html=True)
         st.markdown("""
 <div class="stat-grid" style="grid-template-columns:1fr 1fr">
-  <div class="stat-item"><div class="stat-val" style="font-size:1.1rem">RBF</div><div class="stat-lbl">Kernel</div></div>
-  <div class="stat-item"><div class="stat-val" style="font-size:1.1rem">1000</div><div class="stat-lbl">C (regularization)</div></div>
-  <div class="stat-item"><div class="stat-val" style="font-size:1.1rem">0.1</div><div class="stat-lbl">Gamma (γ)</div></div>
-  <div class="stat-item"><div class="stat-val" style="font-size:1.1rem">0.01</div><div class="stat-lbl">Epsilon (ε)</div></div>
+  <div class="stat-item"><div class="stat-val" style="font-size:1.1rem">GRU</div><div class="stat-lbl">Layer Type</div></div>
+  <div class="stat-item"><div class="stat-val" style="font-size:1.1rem">64×2</div><div class="stat-lbl">Units (stacked)</div></div>
+  <div class="stat-item"><div class="stat-val" style="font-size:1.1rem">0.2</div><div class="stat-lbl">Dropout Rate</div></div>
+  <div class="stat-item"><div class="stat-val" style="font-size:1.1rem">Adam</div><div class="stat-lbl">Optimizer</div></div>
   <div class="stat-item"><div class="stat-val" style="font-size:1.1rem">60</div><div class="stat-lbl">Lookback (days)</div></div>
-  <div class="stat-item"><div class="stat-val" style="font-size:1.1rem">80/20</div><div class="stat-lbl">Train/Test split</div></div>
+  <div class="stat-item"><div class="stat-val" style="font-size:1.1rem">80/20</div><div class="stat-lbl">Train/Test Split</div></div>
 </div>""", unsafe_allow_html=True)
 
         st.markdown('<div class="sec-header" style="margin-top:1.5rem">📐 Key Formulas</div>', unsafe_allow_html=True)
         st.markdown("""
 <div class="info-box" style="font-size:0.75rem">
-<b style="color:#7b61ff">RBF Kernel:</b><br>
-K(x, x') = exp(−γ ‖x − x'‖²)<br><br>
-<b style="color:#7b61ff">SVR Objective:</b><br>
-Minimize ½‖w‖² + C Σξᵢ<br>
-subject to |yᵢ − f(xᵢ)| ≤ ε + ξᵢ<br><br>
-<b style="color:#7b61ff">RMSE:</b><br>
-√( (1/n) Σ(ŷᵢ − yᵢ)² )<br><br>
-<b style="color:#7b61ff">MAPE:</b><br>
-(100/n) Σ |yᵢ − ŷᵢ| / |yᵢ|<br><br>
-<b style="color:#7b61ff">R²:</b><br>
-1 − Σ(yᵢ − ŷᵢ)² / Σ(yᵢ − ȳ)²
+<b style="color:#7b61ff">Update Gate:</b><br>
+z = σ(Wz · [h(t-1), x(t)])<br><br>
+<b style="color:#7b61ff">Reset Gate:</b><br>
+r = σ(Wr · [h(t-1), x(t)])<br><br>
+<b style="color:#7b61ff">Candidate Hidden State:</b><br>
+h̃ = tanh(W · [r ⊙ h(t-1), x(t)])<br><br>
+<b style="color:#7b61ff">Final Hidden State:</b><br>
+h(t) = (1 − z) ⊙ h(t-1) + z ⊙ h̃<br><br>
+<b style="color:#7b61ff">Loss (MSE):</b><br>
+(1/n) Σ(ŷᵢ − yᵢ)²
 </div>""", unsafe_allow_html=True)
 
         st.markdown('<div class="sec-header" style="margin-top:1.5rem">⚠ Limitations</div>', unsafe_allow_html=True)
         st.markdown("""
 <div class="info-box" style="border-left-color:#ff4d6d">
-<b style="color:#ff4d6d">SVR does not know:</b><br>
+<b style="color:#ff4d6d">GRU does not know:</b><br>
 • News events or earnings surprises<br>
 • Macroeconomic changes (RBI rates, inflation)<br>
 • Market sentiment or FII flows<br>
 • Corporate actions (splits, dividends)<br><br>
-It only learns from past closing prices. Use as one 
+It only learns from past closing prices. Use as one
 signal among many — never as sole trading advice.
 </div>""", unsafe_allow_html=True)
 
     st.markdown('<div class="fancy-divider"></div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="sec-header">📚 Why SVR for Stock Prediction?</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-header">📚 Why GRU for Stock Prediction?</div>', unsafe_allow_html=True)
     col3a, col3b, col3c = st.columns(3)
     col3a.markdown("""
 <div class="info-box">
-<b>vs LSTM / RNN</b><br>
-SVR trains much faster with small datasets. 
-LSTM needs thousands of samples and GPUs 
-to outperform SVR. For short sequences, 
-SVR is often competitive.
+<b>vs LSTM</b><br>
+GRU uses 2 gates instead of LSTM's 3, making it ~25% faster to train
+with fewer parameters. On shorter sequences (&lt;100 steps), GRU often 
+matches or beats LSTM accuracy.
 </div>""", unsafe_allow_html=True)
     col3b.markdown("""
 <div class="info-box">
-<b>vs Linear Regression</b><br>
-Linear models assume price is a linear 
-combination of past prices. The RBF kernel 
-lets SVR capture non-linear patterns like 
-momentum, reversals, and volatility clustering.
+<b>vs SVR</b><br>
+SVR flattens the sequence into a flat vector, losing temporal order.
+GRU processes prices step-by-step, naturally capturing trends,
+momentum, and mean-reversion patterns in sequence.
 </div>""", unsafe_allow_html=True)
     col3c.markdown("""
 <div class="info-box">
 <b>vs ARIMA</b><br>
-ARIMA assumes stationarity and models 
-autocorrelation explicitly. SVR makes no 
-such assumptions — it learns the mapping 
-function directly from data, making it 
-more flexible for trending markets.
+ARIMA assumes stationarity and models autocorrelation with fixed
+lags. GRU learns adaptive lag weights end-to-end from data,
+making it far more flexible on non-stationary trending markets.
 </div>""", unsafe_allow_html=True)
