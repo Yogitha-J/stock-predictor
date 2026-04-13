@@ -6,3 +6,4 @@ yfinance
 plotly
 streamlit-oauth
 requests
+tensorflow
